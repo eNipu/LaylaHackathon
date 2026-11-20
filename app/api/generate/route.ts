@@ -1,5 +1,7 @@
+import { SeverityNumber } from "@opentelemetry/api-logs";
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
+import { posthogLogger, posthogLoggerProvider, posthogSpanProcessor } from "@/instrumentation";
 import { DEMO_RESULT, type GenerationChunk } from "@/lib/generation";
 import { isSameOrigin } from "@/lib/request";
 
@@ -16,6 +18,11 @@ export async function POST(request: Request) {
     if (typeof body?.prompt !== "string" || !body.prompt.trim() || body.prompt.length > 2000) {
       return Response.json({ error: "Enter an idea between 1 and 2,000 characters." }, { status: 400 });
     }
+    posthogLogger?.emit({
+      body: "launch_plan_request_accepted",
+      severityNumber: SeverityNumber.INFO,
+      attributes: { endpoint: "/api/generate" },
+    });
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20_000)]);
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -23,6 +30,11 @@ export async function POST(request: Request) {
         const send = (chunk: GenerationChunk) => controller.enqueue(encoder.encode(JSON.stringify(chunk) + "\n"));
         try {
           if (!process.env.ANTHROPIC_API_KEY) {
+            posthogLogger?.emit({
+              body: "launch_plan_fallback_served",
+              severityNumber: SeverityNumber.WARN,
+              attributes: { endpoint: "/api/generate", reason: "provider_unconfigured" },
+            });
             send({ type: "fallback", text: DEMO_RESULT });
             return;
           }
@@ -39,6 +51,14 @@ export async function POST(request: Request) {
             maxOutputTokens: 600,
             maxRetries: 0,
             abortSignal: signal,
+            runtimeContext: {
+              sessionId: `process-${process.pid}`,
+              traceName: "launch_plan_generation",
+            },
+            telemetry: {
+              functionId: "launch_plan_generation",
+              includeRuntimeContext: { sessionId: true, traceName: true },
+            },
           });
           let hasText = false;
           let finished = false;
@@ -52,16 +72,40 @@ export async function POST(request: Request) {
             }
           }
           if (!hasText || !finished) throw new Error("No complete result.");
+          posthogLogger?.emit({
+            body: "launch_plan_generated",
+            severityNumber: SeverityNumber.INFO,
+            attributes: { endpoint: "/api/generate", mode: "live" },
+          });
           send({ type: "done", mode: "live" });
         } catch {
-          if (!request.signal.aborted) send({ type: "fallback", text: DEMO_RESULT });
+          if (!request.signal.aborted) {
+            posthogLogger?.emit({
+              body: "launch_plan_fallback_served",
+              severityNumber: SeverityNumber.WARN,
+              attributes: { endpoint: "/api/generate", reason: "generation_failed" },
+            });
+            send({ type: "fallback", text: DEMO_RESULT });
+          }
         } finally {
+          await Promise.race([
+            Promise.all([
+              posthogSpanProcessor?.forceFlush().catch(() => {}),
+              posthogLoggerProvider?.forceFlush().catch(() => {}),
+            ]),
+            new Promise<void>((resolve) => setTimeout(resolve, 2_000)),
+          ]);
           controller.close();
         }
       },
     });
     return new Response(stream, { headers: { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" } });
   } catch {
+    posthogLogger?.emit({
+      body: "launch_plan_request_unavailable",
+      severityNumber: SeverityNumber.WARN,
+      attributes: { endpoint: "/api/generate" },
+    });
     return Response.json({ error: "Generation is temporarily unavailable. Please try the example." }, { status: 503 });
   }
 }
