@@ -1,14 +1,32 @@
-import { Generator } from "@/components/generator";
+import { Zap, ShieldCheck, Gift } from "lucide-react";
+import { Hero } from "@/components/hero";
 import { SiteHeader } from "@/components/site-header";
+import { site } from "@/lib/site-config";
+
+const proofIcons = [Zap, ShieldCheck, Gift];
+
 export default function Home() {
-  return <><SiteHeader /><main id="main" className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-12 sm:px-8 sm:py-20 lg:grid-cols-[1fr_1.05fr] lg:gap-20">
-    <section className="min-w-0">
-      <p className="eyebrow mb-6 flex items-center gap-2 text-muted-foreground"><span className="size-2 rounded-full bg-lime-600" /> Small idea. Real momentum.</p>
-      <h1 className="max-w-lg text-5xl font-semibold leading-[1.03] tracking-[-0.065em] sm:text-6xl">Less planning.<br />More <span className="bg-primary px-1">first users.</span></h1>
-      <p className="mt-7 max-w-sm text-lg leading-relaxed text-muted-foreground">Turn that thing you want to build into a practical plan to reach the people who need it.</p>
-      <div className="mt-10 border-t border-border pt-5"><p className="eyebrow text-muted-foreground">Built for the first small step</p><p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">One audience. One useful result. One way to get it into someone’s hands.</p></div>
-      <p className="mt-8 font-mono text-xs text-muted-foreground">IDEA → VALUE → FIRST USER</p>
+  return <div className="hero-atmosphere">
+    <SiteHeader />
+    <main id="main"><Hero /></main>
+
+    <section aria-label="Why it works" className="mx-auto w-full max-w-6xl px-4 pb-14 sm:px-8 sm:pb-20">
+      <ul className="grid overflow-hidden rounded-[1.75rem] border border-border bg-surface/60 sm:grid-cols-3">
+        {site.proof.map((item, i) => {
+          const Icon = proofIcons[i % proofIcons.length];
+          return <li key={item.title} className="flex gap-4 border-border p-5 not-last:border-b sm:p-7 sm:not-last:border-b-0 sm:not-last:border-r">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-foreground"><Icon size={18} aria-hidden /></span>
+            <div className="min-w-0">
+              <h2 className="font-display text-2xl leading-tight">{item.title}</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.body}</p>
+            </div>
+          </li>;
+        })}
+      </ul>
     </section>
-    <Generator />
-  </main><footer className="safe-bottom mx-auto flex max-w-6xl flex-wrap justify-between gap-3 border-t border-border px-5 py-5 text-xs text-muted-foreground sm:px-8"><span>Layla / Build & Launch</span><span>Useful beats unfinished.</span></footer></>;
+
+    <footer className="safe-bottom mx-auto flex max-w-6xl flex-wrap justify-between gap-3 border-t border-border px-4 py-5 text-xs text-muted-foreground sm:px-8">
+      <span>{site.footer.left}</span><span>{site.footer.right}</span>
+    </footer>
+  </div>;
 }
