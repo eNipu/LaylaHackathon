@@ -1,0 +1,9 @@
+# Claude Code does not enforce this file; matching Read deny rules live in .claude/settings.json.
+node_modules/
+.next/
+out/
+.taste-skill/
+public/images/
+*.lock
+package-lock.json
+*.log
