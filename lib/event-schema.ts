@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const eventNames = ["landing_view", "core_action_started", "core_action_completed", "share_or_conversion_clicked"] as const;
+export const eventNames = ["landing_view", "core_action_started", "core_action_completed", "example_selected", "share_or_conversion_clicked"] as const;
 export type EventName = (typeof eventNames)[number];
 export const attributionKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ref"] as const;
 export type Attribution = Record<(typeof attributionKeys)[number], string | null>;

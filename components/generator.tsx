@@ -37,6 +37,7 @@ export function Generator() {
         if (chunk.type === "fallback") {
           terminal = true; setMode("demo"); setOutput(chunk.text);
           setError("AI is unavailable right now. This is a saved example, not a personalized result.");
+          trackEvent("core_action_completed", { mode: "demo" });
         }
         if (chunk.type === "done") {
           terminal = true; setMode("live"); trackEvent("core_action_completed", { mode: "live" });
@@ -62,7 +63,7 @@ export function Generator() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><label htmlFor="idea" className="text-sm font-semibold">What are you building?</label><span className="eyebrow text-muted-foreground">01 / Your idea</span></div>
       <textarea ref={input} id="idea" value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="An idea, a problem, a half-formed thought…" maxLength={2000} required rows={5} className="w-full resize-y rounded-lg border border-border bg-background p-4 leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-lime-700" />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <Button type="button" variant="outline" disabled={busy} onClick={() => { setPrompt(EXAMPLE); input.current?.focus(); }}><Sparkles size={14} /> Try Example</Button>
+        <Button type="button" variant="outline" disabled={busy} onClick={() => { setPrompt(EXAMPLE); input.current?.focus(); trackEvent("example_selected"); }}><Sparkles size={14} /> Try Example</Button>
         <span className="text-xs text-muted-foreground">{prompt.length.toLocaleString()} / 2,000</span>
       </div>
       <Button type="submit" variant="accent" className="mt-6 w-full" disabled={busy || !prompt.trim()}>{busy ? <><LoaderCircle size={17} className="animate-spin" /> Making your plan…</> : <>Make my launch plan <ArrowRight size={17} /></>}</Button>
